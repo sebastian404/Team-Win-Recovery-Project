@@ -69,6 +69,7 @@ struct virtualkey {
 struct position {
     int x, y;
     int synced;
+    int track_id;
     struct input_absinfo xi, yi;
 };
 
@@ -393,7 +394,7 @@ static int vk_modify(struct ev *e, struct input_event *ev)
 
 //30
         case ABS_MT_TOUCH_MAJOR:
-            if (ev->value == 0)
+            if ((e->mt_p.track_id == 0) && (ev->value == 0))
             {
                 // We're in a touch release, although some devices will still send positions as well
                 e->mt_p.x = 0;
@@ -435,8 +436,11 @@ static int vk_modify(struct ev *e, struct input_event *ev)
 
 //35
         case ABS_MT_POSITION_X:
+        if (e->mt_p.track_id == 0)
+        {
             e->mt_p.synced |= 0x01;
             e->mt_p.x = ev->value;
+        }
 #ifdef _EVENT_LOGGING
             LOGI("EV: %s => EV_ABS  ABS_MT_POSITION_X  %d\n", e->deviceName, ev->value);
 #endif
@@ -444,8 +448,11 @@ static int vk_modify(struct ev *e, struct input_event *ev)
 
 //36
         case ABS_MT_POSITION_Y:
+        if (e->mt_p.track_id == 0)
+        {
             e->mt_p.synced |= 0x02;
             e->mt_p.y = ev->value;
+        }
 #ifdef _EVENT_LOGGING
             LOGI("EV: %s => EV_ABS  ABS_MT_POSITION_Y  %d\n", e->deviceName, ev->value);
 #endif
@@ -467,6 +474,7 @@ static int vk_modify(struct ev *e, struct input_event *ev)
 
 //39
         case ABS_MT_TRACKING_ID:
+        e->mt_p.track_id = ev->value;
 #ifdef _EVENT_LOGGING
             LOGI("EV: %s => EV_ABS ABS_MT_TRACKING_ID %d\n", e->deviceName, ev->value);
 #endif
@@ -474,7 +482,7 @@ static int vk_modify(struct ev *e, struct input_event *ev)
 
 //3a
         case ABS_MT_PRESSURE:
-                    if (ev->value == 0)
+            if ((e->mt_p.track_id == 0) && (ev->value == 0))
             {
                 // We're in a touch release, although some devices will still send positions as well
                 e->mt_p.x = 0;
