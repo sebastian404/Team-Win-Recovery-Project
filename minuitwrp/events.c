@@ -29,19 +29,30 @@
 
 //#define _EVENT_LOGGING
 
-#define MAX_DEVICES 16
+#define MAX_DEVICES         16
 
 #define VIBRATOR_TIMEOUT_FILE	"/sys/class/timed_output/vibrator/enable"
-#define VIBRATOR_TIME_MS	50
+#define VIBRATOR_TIME_MS    50
 
-#define ABS_MT_POSITION		0x2a	/* Group a set of X and Y */
-#define ABS_MT_AMPLITUDE	0x2b	/* Group a set of Z and W */
-#define ABS_MT_POSITION_X 0x35
-#define ABS_MT_POSITION_Y 0x36
-#define ABS_MT_TOUCH_MAJOR 0x30
-#define ABS_MT_WIDTH_MAJOR 0x32
-#define SYN_MT_REPORT 2
-#define ABS_MT_PRESSURE    0x3a
+#define SYN_REPORT          0x00
+#define SYN_CONFIG          0x01
+#define SYN_MT_REPORT       0x02
+
+#define ABS_MT_POSITION     0x2a /* Group a set of X and Y */
+#define ABS_MT_AMPLITUDE    0x2b /* Group a set of Z and W */
+#define ABS_MT_SLOT         0x2f
+#define ABS_MT_TOUCH_MAJOR  0x30
+#define ABS_MT_TOUCH_MINOR  0x31
+#define ABS_MT_WIDTH_MAJOR  0x32
+#define ABS_MT_WIDTH_MINOR  0x33
+#define ABS_MT_ORIENTATION  0x34
+#define ABS_MT_POSITION_X   0x35
+#define ABS_MT_POSITION_Y   0x36
+#define ABS_MT_TOOL_TYPE    0x37
+#define ABS_MT_BLOB_ID      0x38
+#define ABS_MT_TRACKING_ID  0x39
+#define ABS_MT_PRESSURE     0x3a
+#define ABS_MT_DISTANCE     0x3b
 
 enum {
     DOWN_NOT,
@@ -344,44 +355,26 @@ static int vk_modify(struct ev *e, struct input_event *ev)
 
     if (ev->type == EV_ABS) {
         switch (ev->code) {
+
+//00            
         case ABS_X:
             e->p.synced |= 0x01;
             e->p.x = ev->value;
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS  ABS_X  %d\n", e->deviceName, ev->value);
+#endif
             break;
+
+//01
         case ABS_Y:
             e->p.synced |= 0x02;
             e->p.y = ev->value;
-            break;
-        case ABS_MT_POSITION_X:
-            e->mt_p.synced |= 0x01;
-            e->mt_p.x = ev->value;
 #ifdef _EVENT_LOGGING
-            LOGI("EV: %s => EV_ABS  ABS_MT_POSITION_X  %d\n", e->deviceName, ev->value);
+            LOGI("EV: %s => EV_ABS  ABS_Y  %d\n", e->deviceName, ev->value);
 #endif
             break;
-        case ABS_MT_POSITION_Y:
-            e->mt_p.synced |= 0x02;
-            e->mt_p.y = ev->value;
-#ifdef _EVENT_LOGGING
-            LOGI("EV: %s => EV_ABS  ABS_MT_POSITION_Y  %d\n", e->deviceName, ev->value);
-#endif
-            break;
-        case ABS_MT_TOUCH_MAJOR:
-#ifdef _EVENT_LOGGING
-            LOGI("EV: %s => EV_ABS  ABS_MT_TOUCH_MAJOR  %d\n", e->deviceName, ev->value);
-#endif
-        case ABS_MT_PRESSURE:
-#ifdef _EVENT_LOGGING
-            LOGI("EV: %s => EV_ABS  ABS_MT_PRESSURE  %d\n", e->deviceName, ev->value);
-#endif
-            if (ev->value == 0)
-            {
-                // We're in a touch release, although some devices will still send positions as well
-                e->mt_p.x = 0;
-                e->mt_p.y = 0;
-                touchReleaseOnNextSynReport = 1;
-            }
-            break;
+
+//2a
         case ABS_MT_POSITION:
             e->mt_p.synced = 0x03;
             if (ev->value == (1 << 31))
@@ -397,6 +390,110 @@ static int vk_modify(struct ev *e, struct input_event *ev)
                 e->mt_p.y = (ev->value & 0xFFFF);
             }
             break;
+
+//30
+        case ABS_MT_TOUCH_MAJOR:
+            if (ev->value == 0)
+            {
+                // We're in a touch release, although some devices will still send positions as well
+                e->mt_p.x = 0;
+                e->mt_p.y = 0;
+                touchReleaseOnNextSynReport = 1;
+            }
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS  ABS_MT_TOUCH_MAJOR  %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//31
+         case ABS_MT_TOUCH_MINOR:
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS ABS_MT_TOUCH_MINOR %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//32
+          case ABS_MT_WIDTH_MAJOR:
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS ABS_MT_WIDTH_MAJOR %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//33
+       case ABS_MT_WIDTH_MINOR:
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS ABS_MT_WIDTH_MINOR %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//34
+        case ABS_MT_ORIENTATION:
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS ABS_MT_ORIENTATION %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//35
+        case ABS_MT_POSITION_X:
+            e->mt_p.synced |= 0x01;
+            e->mt_p.x = ev->value;
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS  ABS_MT_POSITION_X  %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//36
+        case ABS_MT_POSITION_Y:
+            e->mt_p.synced |= 0x02;
+            e->mt_p.y = ev->value;
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS  ABS_MT_POSITION_Y  %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//37
+      case ABS_MT_TOOL_TYPE:
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS ABS_MT_TOOL_TYPE %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//38
+        case ABS_MT_BLOB_ID:
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS ABS_MT_BLOB_ID %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//39
+        case ABS_MT_TRACKING_ID:
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS ABS_MT_TRACKING_ID %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//3a
+        case ABS_MT_PRESSURE:
+                    if (ev->value == 0)
+            {
+                // We're in a touch release, although some devices will still send positions as well
+                e->mt_p.x = 0;
+                e->mt_p.y = 0;
+                touchReleaseOnNextSynReport = 1;
+            }
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS  ABS_MT_PRESSURE  %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+//3b
+        case ABS_MT_DISTANCE:
+#ifdef _EVENT_LOGGING
+            LOGI("EV: %s => EV_ABS ABS_MT_DISTANCE %d\n", e->deviceName, ev->value);
+#endif
+            break;
+
+
 
         default:
             // This is an unhandled message, just skip it
